@@ -57,6 +57,28 @@ class TreeHerderServiceTest {
         assertEquals("1234567", push.revisions[0].bugNumber)
     }
 
+    // ── fetchJobs ────────────────────────────────────────────────────────────
+
+    @Test fun `fetchJobs sends correct URL and query params`() = runTest {
+        server.enqueue(MockResponse().setBody(JOBS_FIXTURE))
+        service.fetchJobs(pushId = 123456)
+        val path = server.takeRequest().requestUrl!!
+        assertEquals("project/try/jobs/", path.encodedPath.trimStart('/'))
+        assertEquals("123456", path.queryParameter("push_id"))
+        assertEquals("2000", path.queryParameter("count"))
+        assertEquals("list", path.queryParameter("return_type"))
+        assertEquals("false", path.queryParameter("exclusion_profile"))
+    }
+
+    @Test fun `fetchJobs parses compact response end-to-end`() = runTest {
+        server.enqueue(MockResponse().setBody(JOBS_FIXTURE))
+        val jobs = service.fetchJobs(pushId = 123456)
+        assertEquals(1, jobs.size)
+        assertEquals(8675309, jobs[0].id)
+        assertEquals(123456, jobs[0].pushId)
+        assertEquals(com.mozilla.buildwatch.model.JobResult.TEST_FAILED, jobs[0].result)
+    }
+
     // ── parseCompactJobs ─────────────────────────────────────────────────────
 
     @Test fun `parseCompactJobs maps rows to Jobs by property index`() {
