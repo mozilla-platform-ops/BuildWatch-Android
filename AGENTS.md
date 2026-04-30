@@ -55,6 +55,30 @@ git commit -m "..."     # Commit everything
 git push                # Push to remote
 ```
 
+### Epic / Subtask Convention
+
+Group related tasks under an epic. Create the epic first, then create subtasks with `--parent <EPIC_ID>`. Beads auto-assigns IDs in the form `EPIC_ID.1`, `EPIC_ID.2`, etc. — do **not** put the epic ID in the title.
+
+```bash
+br create --title="My Epic" --type=epic --priority=0
+# note the returned ID, e.g. bwa-abc
+br create --title="First subtask" --type=task --priority=0 --parent=bwa-abc
+# → bwa-abc.1
+br create --title="Second subtask" --type=task --priority=0 --parent=bwa-abc
+# → bwa-abc.2
+```
+
+### Dependencies
+
+Wire blockers with `br dep add <blocked> <blocker>`. Combined with `--parent`, this means `br ready` always shows only truly unblocked work.
+
+```bash
+br dep add bwa-abc.2 bwa-abc.1   # abc.2 is blocked until abc.1 is closed
+br dep add bwa-abc.2 bwa-xyz.1   # can depend on tasks in other epics too
+```
+
+You can also specify deps at creation time with `--deps type:id,type:id`.
+
 ### Best Practices
 
 - Check `br ready` at session start to find available work
@@ -62,5 +86,7 @@ git push                # Push to remote
 - Create new issues with `br create` when you discover tasks
 - Use descriptive titles and set appropriate priority/type
 - Always sync before ending session
+- Use epics to group work; subtasks get auto-numbered IDs via `--parent`
+- Wire all blockers with `br dep add` so `br ready` stays meaningful
 
 <!-- end-br-agent-instructions -->
