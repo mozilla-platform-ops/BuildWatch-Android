@@ -89,4 +89,33 @@ You can also specify deps at creation time with `--deps type:id,type:id`.
 - Use epics to group work; subtasks get auto-numbered IDs via `--parent`
 - Wire all blockers with `br dep add` so `br ready` stays meaningful
 
+---
+
+## Android Build Environment
+
+### Java
+
+The system default JVM is Java 10 (too old). Always use the mozbuild JDK 17:
+
+```bash
+export JAVA_HOME=/Users/aerickson/.mozbuild/jdk/jdk-17.0.15+6/Contents/Home
+```
+
+### Android SDK
+
+`local.properties` is gitignored and must exist locally. Create it if missing:
+
+```bash
+echo "sdk.dir=/Users/aerickson/Library/Android/sdk" > local.properties
+```
+
+### Compiling
+
+```bash
+JAVA_HOME=/Users/aerickson/.mozbuild/jdk/jdk-17.0.15+6/Contents/Home \
+  ./gradlew :app:compileDebugKotlin
+```
+
+The three deprecation warnings in `MainActivity.kt`, `SettingsScreen.kt`, and `JobColors.kt` are pre-existing and harmless — don't fix them unless that's the task.
+
 <!-- end-br-agent-instructions -->
