@@ -1,15 +1,224 @@
 package com.mozilla.buildwatch.ui.screen
 
-import androidx.compose.foundation.layout.Box
+import android.app.Application
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.HourglassEmpty
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mozilla.buildwatch.model.Job
+import com.mozilla.buildwatch.model.JobResult
+import com.mozilla.buildwatch.model.JobState
+import com.mozilla.buildwatch.model.Push
+import com.mozilla.buildwatch.model.PushRevision
+import com.mozilla.buildwatch.ui.theme.ColorSuccess
+import com.mozilla.buildwatch.util.openUrl
+import com.mozilla.buildwatch.util.shortTimeAgo
+import com.mozilla.buildwatch.viewmodel.DashboardViewModel
+
+private val ColorFailurePill = Color(0xFFFF4F5E)
+private val ColorBugChip = Color(0xFF1565C0)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PushDetailScreen(
+    pushId: Int,
+    onBack: () -> Unit,
+    vm: DashboardViewModel = viewModel(
+        factory = DashboardViewModel.factory(
+            LocalContext.current.applicationContext as Application,
+        ),
+    ),
+) {
+    val pushes by vm.pushes.collectAsStateWithLifecycle()
+    val jobsByPush by vm.jobsByPush.collectAsStateWithLifecycle()
+    val push = pushes.firstOrNull { it.id == pushId }
+    val jobs = jobsByPush[pushId] ?: emptyList()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(push?.displayTitle ?: "Push #$pushId") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+            )
+        },
+    ) { padding ->
+        if (push == null) return@Scaffold
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+        ) {
+            item { AuthorHeader(push) }
+            if (jobs.isNotEmpty()) {
+                item { PushSummaryBar(jobs) }
+            }
+            item {
+                Text(
+                    text = "Revisions",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
+            items(push.revisions, key = { it.revision }) { rev ->
+                RevisionRow(rev)
+                HorizontalDivider()
+            }
+        }
+    }
+}
 
 @Composable
-fun PushDetailScreen(pushId: Int) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Push Detail #$pushId — coming soon")
+private fun AuthorHeader(push: Push) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = push.authorHandle,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+        )
+        Spacer(Modifier.weight(1f))
+        Text(
+            text = push.date.shortTimeAgo(),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
+}
+
+@Composable
+private fun PushSummaryBar(jobs: List<Job>) {
+    val success = jobs.count { it.result == JobResult.SUCCESS && it.state == JobState.COMPLETED }
+    val failures = jobs.count { it.result.isFailure && it.state == JobState.COMPLETED }
+    val running = jobs.count { it.state == JobState.RUNNING }
+    val pending = jobs.count { it.state == JobState.PENDING }
+    val total = jobs.size
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        SummaryCell(icon = { Icon(Icons.Filled.CheckCircle, null, tint = ColorSuccess, modifier = Modifier.size(16.dp)) }, count = success)
+        SummaryCell(icon = { Icon(Icons.Filled.Error, null, tint = ColorFailurePill, modifier = Modifier.size(16.dp)) }, count = failures)
+        SummaryCell(icon = { Icon(Icons.Filled.Settings, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp)) }, count = running)
+        SummaryCell(icon = { Icon(Icons.Filled.HourglassEmpty, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp)) }, count = pending)
+        Spacer(Modifier.weight(1f))
+        Text(
+            text = "$total total",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun SummaryCell(icon: @Composable () -> Unit, count: Int) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        icon()
+        Text(
+            text = count.toString(),
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Medium,
+        )
+    }
+}
+
+@Composable
+private fun RevisionRow(rev: PushRevision) {
+    val context = LocalContext.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = rev.shortMessage,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = rev.revision.take(12),
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = FontFamily.Monospace,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            rev.bugNumber?.let { bugNum ->
+                BugChip(
+                    bugNumber = bugNum,
+                    onClick = {
+                        openUrl(context, "https://bugzilla.mozilla.org/show_bug.cgi?id=$bugNum")
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BugChip(bugNumber: String, onClick: () -> Unit) {
+    Text(
+        text = "Bug $bugNumber",
+        style = MaterialTheme.typography.labelSmall,
+        color = Color.White,
+        fontSize = 11.sp,
+        modifier = Modifier
+            .background(color = ColorBugChip, shape = RoundedCornerShape(50))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+    )
 }

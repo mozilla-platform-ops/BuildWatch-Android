@@ -85,7 +85,10 @@ class MainActivity : ComponentActivity() {
                         }
                         composable<PushDetail> { entry ->
                             val route = entry.toRoute<PushDetail>()
-                            PushDetailScreen(pushId = route.pushId)
+                            PushDetailScreen(
+                                pushId = route.pushId,
+                                onBack = { navController.popBackStack() },
+                            )
                         }
                     }
                 }
