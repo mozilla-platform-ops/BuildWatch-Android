@@ -1,7 +1,6 @@
 package com.mozilla.buildwatch.ui.screen
 
 import android.app.Application
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +15,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -32,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mozilla.buildwatch.model.Push
+import com.mozilla.buildwatch.ui.component.PushRowItem
 import com.mozilla.buildwatch.util.shortTimeAgo
 import com.mozilla.buildwatch.viewmodel.DashboardViewModel
 
@@ -46,6 +45,8 @@ fun TryPushesScreen(
     ),
 ) {
     val pushes by vm.pushes.collectAsStateWithLifecycle()
+    val jobsByPush by vm.jobsByPush.collectAsStateWithLifecycle()
+    val watchedPushIds by vm.watchedPushIds.collectAsStateWithLifecycle()
     val isRefreshing by vm.isRefreshing.collectAsStateWithLifecycle()
     val errorMessage by vm.errorMessage.collectAsStateWithLifecycle()
     val lastRefresh by vm.lastRefresh.collectAsStateWithLifecycle()
@@ -122,7 +123,16 @@ fun TryPushesScreen(
                 else -> {
                     LazyColumn(Modifier.fillMaxSize()) {
                         items(pushes, key = { it.id }) { push ->
-                            PushRowPlaceholder(push = push, onClick = { onPushClick(push.id) })
+                            val groups = vm.platformGroups(push)
+                            PushRowItem(
+                                push = push,
+                                platformGroups = groups,
+                                jobsLoaded = jobsByPush.containsKey(push.id),
+                                failureCount = vm.failureCount(push),
+                                isRunning = vm.isRunning(push),
+                                isWatched = push.id in watchedPushIds,
+                                onClick = { onPushClick(push.id) },
+                            )
                             HorizontalDivider()
                         }
                     }
@@ -132,11 +142,3 @@ fun TryPushesScreen(
     }
 }
 
-@Composable
-private fun PushRowPlaceholder(push: Push, onClick: () -> Unit) {
-    ListItem(
-        headlineContent = { Text(push.displayTitle) },
-        supportingContent = { Text("${push.authorHandle} · ${push.date.shortTimeAgo()}") },
-        modifier = Modifier.clickable(onClick = onClick),
-    )
-}
