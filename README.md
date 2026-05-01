@@ -88,6 +88,18 @@ Single-module Kotlin + Jetpack Compose app. State via `StateFlow`, persistence v
 
 ---
 
+## Development workflow
+
+Issues are tracked in `.beads/` using [`br`](https://github.com/Dicklesworthstone/beads_rust). To find the next actionable task:
+
+```bash
+br ready
+```
+
+This shows open, unblocked issues sorted by priority. See [AGENTS.md](AGENTS.md) for the full workflow (claiming work, closing issues, syncing).
+
+---
+
 ## Data sources
 
 All APIs are public — no VPN or Mozilla network access required.
