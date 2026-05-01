@@ -3,14 +3,14 @@ package com.mozilla.buildwatch.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.mozilla.buildwatch.repository.SettingsRepository
+import com.mozilla.buildwatch.repository.DataStoreSettingsRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repo = SettingsRepository(application)
+    private val repo = DataStoreSettingsRepository(application)
 
     val username = repo.username.stateIn(
         viewModelScope,

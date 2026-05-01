@@ -11,9 +11,20 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
+interface SettingsRepository {
+    val username: Flow<String>
+    val notificationsEnabled: Flow<Boolean>
+    val watchedPushIds: Flow<Set<Int>>
+    val notifiedPushIds: Flow<Set<Int>>
+    suspend fun setUsername(value: String)
+    suspend fun setNotificationsEnabled(value: Boolean)
+    suspend fun setWatchedPushIds(ids: Set<Int>)
+    suspend fun setNotifiedPushIds(ids: Set<Int>)
+}
+
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "buildwatch_prefs")
 
-class SettingsRepository(private val context: Context) {
+class DataStoreSettingsRepository(private val context: Context) : SettingsRepository {
 
     companion object {
         private val KEY_USERNAME = stringPreferencesKey("username")
@@ -22,32 +33,32 @@ class SettingsRepository(private val context: Context) {
         private val KEY_NOTIFIED_PUSH_IDS = stringSetPreferencesKey("notified_push_ids")
     }
 
-    val username: Flow<String> = context.dataStore.data.map { it[KEY_USERNAME] ?: "" }
+    override val username: Flow<String> = context.dataStore.data.map { it[KEY_USERNAME] ?: "" }
 
-    val notificationsEnabled: Flow<Boolean> =
+    override val notificationsEnabled: Flow<Boolean> =
         context.dataStore.data.map { it[KEY_NOTIFICATIONS_ENABLED] ?: false }
 
-    val watchedPushIds: Flow<Set<Int>> = context.dataStore.data.map { prefs ->
+    override val watchedPushIds: Flow<Set<Int>> = context.dataStore.data.map { prefs ->
         prefs[KEY_WATCHED_PUSH_IDS]?.mapNotNull { it.toIntOrNull() }?.toSet() ?: emptySet()
     }
 
-    val notifiedPushIds: Flow<Set<Int>> = context.dataStore.data.map { prefs ->
+    override val notifiedPushIds: Flow<Set<Int>> = context.dataStore.data.map { prefs ->
         prefs[KEY_NOTIFIED_PUSH_IDS]?.mapNotNull { it.toIntOrNull() }?.toSet() ?: emptySet()
     }
 
-    suspend fun setUsername(value: String) {
+    override suspend fun setUsername(value: String) {
         context.dataStore.edit { it[KEY_USERNAME] = value }
     }
 
-    suspend fun setNotificationsEnabled(value: Boolean) {
+    override suspend fun setNotificationsEnabled(value: Boolean) {
         context.dataStore.edit { it[KEY_NOTIFICATIONS_ENABLED] = value }
     }
 
-    suspend fun setWatchedPushIds(ids: Set<Int>) {
+    override suspend fun setWatchedPushIds(ids: Set<Int>) {
         context.dataStore.edit { it[KEY_WATCHED_PUSH_IDS] = ids.map { id -> id.toString() }.toSet() }
     }
 
-    suspend fun setNotifiedPushIds(ids: Set<Int>) {
+    override suspend fun setNotifiedPushIds(ids: Set<Int>) {
         context.dataStore.edit { it[KEY_NOTIFIED_PUSH_IDS] = ids.map { id -> id.toString() }.toSet() }
     }
 }

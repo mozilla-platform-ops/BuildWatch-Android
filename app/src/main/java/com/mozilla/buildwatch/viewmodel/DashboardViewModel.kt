@@ -1,27 +1,50 @@
 package com.mozilla.buildwatch.viewmodel
 
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.mozilla.buildwatch.model.FailureGroup
 import com.mozilla.buildwatch.model.Job
 import com.mozilla.buildwatch.model.JobState
 import com.mozilla.buildwatch.model.PlatformGroup
 import com.mozilla.buildwatch.model.Push
 import com.mozilla.buildwatch.model.TextLogError
+import com.mozilla.buildwatch.repository.DataStoreSettingsRepository
 import com.mozilla.buildwatch.repository.SettingsRepository
+import com.mozilla.buildwatch.service.TreeHerder
 import com.mozilla.buildwatch.service.TreeHerderService
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import java.time.Instant
 
-class DashboardViewModel(application: Application) : AndroidViewModel(application) {
+class DashboardViewModel(
+    internal val repo: SettingsRepository,
+    internal val service: TreeHerder,
+) : ViewModel() {
 
-    internal val repo = SettingsRepository(application)
-    internal val service = TreeHerderService.create()
+    companion object {
+        fun factory(application: Application): ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                DashboardViewModel(
+                    repo = DataStoreSettingsRepository(application),
+                    service = TreeHerderService.create(),
+                )
+            }
+        }
+    }
 
     private val _pushes = MutableStateFlow<List<Push>>(emptyList())
     val pushes: StateFlow<List<Push>> = _pushes.asStateFlow()
@@ -47,14 +70,20 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         emptySet(),
     )
 
+    val notifiedPushIds: StateFlow<Set<Int>> = repo.notifiedPushIds.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        emptySet(),
+    )
+
     val username: StateFlow<String> = repo.username.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
         "",
     )
 
-    // In-memory dedup guard — not persisted (matches iOS behaviour)
-    internal val notifiedPushIds = mutableSetOf<Int>()
+    private val _completionEvents = MutableSharedFlow<Push>(extraBufferCapacity = 16)
+    val completionEvents: SharedFlow<Push> = _completionEvents.asSharedFlow()
 
     // ── Computed helpers ──────────────────────────────────────────────────────
 
@@ -99,15 +128,92 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         }.sortedByDescending { it.affectedJobCount }
     }
 
-    // ── Action stubs (implemented in subsequent issues) ───────────────────────
+    // ── Actions ───────────────────────────────────────────────────────────────
 
-    fun refresh() { /* bwa-je0.2 */ }
+    fun refresh() {
+        if (_isRefreshing.value) return
+        _isRefreshing.value = true
+        _errorMessage.value = null
+        viewModelScope.launch {
+            try {
+                val author = username.value.ifEmpty { null }
+                val fetched = service.fetchPushes(count = 20, author = author)
+                _pushes.value = fetched
+                _lastRefresh.value = Instant.now()
+                val watched = watchedPushIds.value
+                if (watched.isNotEmpty()) {
+                    _jobsByPush.value = _jobsByPush.value.filterKeys { it !in watched }
+                }
+                for (push in fetched.take(5)) {
+                    launch { fetchJobsInternal(push) }
+                }
+                for (push in fetched.drop(5)) {
+                    if (push.id in watched) launch { fetchJobsInternal(push) }
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = e.message
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
+    }
 
-    fun fetchJobs(push: Push) { /* bwa-je0.2 */ }
+    fun fetchJobs(push: Push) {
+        if (_jobsByPush.value.containsKey(push.id)) return
+        viewModelScope.launch { fetchJobsInternal(push) }
+    }
 
-    fun fetchFailureLines(push: Push) { /* bwa-je0.4 */ }
+    private suspend fun fetchJobsInternal(push: Push) {
+        if (_jobsByPush.value.containsKey(push.id)) return
+        try {
+            val jobs = service.fetchJobs(push.id)
+            _jobsByPush.value = _jobsByPush.value + (push.id to jobs)
+            checkCompletion(push)
+        } catch (_: Exception) {}
+    }
 
-    fun toggleWatch(push: Push) { /* bwa-je0.3 */ }
+    fun fetchFailureLines(push: Push) {
+        if (_failureLinesByPush.value.containsKey(push.id)) return
+        viewModelScope.launch {
+            val jobs = _jobsByPush.value[push.id] ?: return@launch
+            val targets = jobs
+                .filter { it.result.isFailure && it.state == JobState.COMPLETED }
+                .take(15)
+            if (targets.isEmpty()) return@launch
+            try {
+                val errors = coroutineScope {
+                    targets.map { job -> async { service.fetchTextLogErrors(job.id) } }.awaitAll()
+                }.flatten()
+                _failureLinesByPush.value = _failureLinesByPush.value + (push.id to errors)
+            } catch (_: Exception) {}
+        }
+    }
 
-    suspend fun retrigger(job: Job) { /* bwa-v0o.3 */ }
+    fun toggleWatch(push: Push) {
+        viewModelScope.launch {
+            val current = watchedPushIds.value
+            val updated = if (push.id in current) current - push.id else current + push.id
+            repo.setWatchedPushIds(updated)
+        }
+    }
+
+    internal fun checkCompletion(
+        push: Push,
+        watched: Set<Int> = watchedPushIds.value,
+        notified: Set<Int> = notifiedPushIds.value,
+    ) {
+        val jobs = _jobsByPush.value[push.id] ?: return
+        if (jobs.isEmpty()) return
+        if (jobs.any { it.state == JobState.RUNNING || it.state == JobState.PENDING }) return
+        if (push.id !in watched) return
+        if (push.id in notified) return
+        viewModelScope.launch {
+            repo.setNotifiedPushIds(notifiedPushIds.value + push.id)
+            _completionEvents.emit(push)
+        }
+    }
+
+    suspend fun retrigger(job: Job) {
+        service.retriggerJob(job.id)
+    }
 }
