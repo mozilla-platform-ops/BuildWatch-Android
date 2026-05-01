@@ -1,6 +1,7 @@
 package com.mozilla.buildwatch.ui.screen
 
 import android.app.Application
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,6 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -17,14 +20,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -124,15 +131,51 @@ fun TryPushesScreen(
                     LazyColumn(Modifier.fillMaxSize()) {
                         items(pushes, key = { it.id }) { push ->
                             val groups = vm.platformGroups(push)
-                            PushRowItem(
-                                push = push,
-                                platformGroups = groups,
-                                jobsLoaded = jobsByPush.containsKey(push.id),
-                                failureCount = vm.failureCount(push),
-                                isRunning = vm.isRunning(push),
-                                isWatched = push.id in watchedPushIds,
-                                onClick = { onPushClick(push.id) },
+                            val isWatched = push.id in watchedPushIds
+                            val swipeState = rememberSwipeToDismissBoxState(
+                                confirmValueChange = { value ->
+                                    if (value == SwipeToDismissBoxValue.StartToEnd) {
+                                        vm.toggleWatch(push)
+                                    }
+                                    false
+                                },
                             )
+                            SwipeToDismissBox(
+                                state = swipeState,
+                                enableDismissFromEndToStart = false,
+                                backgroundContent = {
+                                    val watching = !isWatched
+                                    val bgColor = if (watching) Color(0xFFFF9800)
+                                                  else MaterialTheme.colorScheme.surfaceVariant
+                                    val iconTint = if (watching) Color.White
+                                                   else MaterialTheme.colorScheme.onSurfaceVariant
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(bgColor)
+                                            .padding(start = 20.dp),
+                                        contentAlignment = Alignment.CenterStart,
+                                    ) {
+                                        Icon(
+                                            imageVector = if (watching) Icons.Filled.Notifications
+                                                          else Icons.Filled.NotificationsOff,
+                                            contentDescription = if (watching) "Watch" else "Unwatch",
+                                            tint = iconTint,
+                                        )
+                                    }
+                                },
+                            ) {
+                                PushRowItem(
+                                    push = push,
+                                    platformGroups = groups,
+                                    jobsLoaded = jobsByPush.containsKey(push.id),
+                                    failureCount = vm.failureCount(push),
+                                    isRunning = vm.isRunning(push),
+                                    isWatched = isWatched,
+                                    onClick = { onPushClick(push.id) },
+                                    modifier = Modifier.background(MaterialTheme.colorScheme.surface),
+                                )
+                            }
                             HorizontalDivider()
                         }
                     }
