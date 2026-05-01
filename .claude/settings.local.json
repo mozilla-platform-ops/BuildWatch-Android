@@ -8,7 +8,15 @@
       "Bash(JAVA_HOME=$\\(/usr/libexec/java_home -v 17 || /usr/libexec/java_home -v 11 \\) ./gradlew :app:compileDebugKotlin)",
       "Bash(/usr/libexec/java_home *)",
       "Bash(JAVA_HOME=\"/Applications/Android Studio.app/Contents/jbr/Contents/Home\" ./gradlew :app:compileDebugKotlin)",
-      "Bash(./gradlew :app:testDebugUnitTest)"
+      "Bash(./gradlew :app:testDebugUnitTest)",
+      "Read(//Users/aerickson/Library/Java/**)",
+      "Read(//opt/homebrew/opt/**)",
+      "Bash(java -version)",
+      "Bash(br update *)",
+      "Bash(git add *)",
+      "Bash(br close *)",
+      "Bash(br sync *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
