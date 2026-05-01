@@ -118,6 +118,36 @@ class TreeHerderServiceTest {
         assertEquals(emptyList<Any>(), service.parseCompactJobs(body))
     }
 
+    // ── fetchTextLogErrors ───────────────────────────────────────────────────
+
+    @Test fun `fetchTextLogErrors sends GET to correct path`() = runTest {
+        server.enqueue(MockResponse().setBody(TEXT_LOG_ERRORS_FIXTURE))
+        service.fetchTextLogErrors(jobId = 8675309)
+        val request = server.takeRequest()
+        assertEquals("GET", request.method)
+        assertEquals("project/try/jobs/8675309/text_log_errors/", request.requestUrl!!.encodedPath.trimStart('/'))
+    }
+
+    @Test fun `fetchTextLogErrors deserializes response correctly`() = runTest {
+        server.enqueue(MockResponse().setBody(TEXT_LOG_ERRORS_FIXTURE))
+        val errors = service.fetchTextLogErrors(jobId = 8675309)
+        assertEquals(1, errors.size)
+        assertEquals(9876, errors[0].id)
+        assertEquals("TEST-UNEXPECTED-FAIL | dom/some/test.js | Expected true got false", errors[0].line)
+        assertEquals(4201, errors[0].lineNumber)
+        assertEquals(8675309, errors[0].job)
+    }
+
+    // ── retriggerJob ─────────────────────────────────────────────────────────
+
+    @Test fun `retriggerJob sends POST to correct path`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200))
+        service.retriggerJob(jobId = 8675309)
+        val request = server.takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("project/try/jobs/8675309/retrigger/", request.requestUrl!!.encodedPath.trimStart('/'))
+    }
+
     // ── Fixtures ─────────────────────────────────────────────────────────────
 
     companion object {
@@ -135,6 +165,17 @@ class TreeHerderServiceTest {
                 }]
               }]
             }
+        """.trimIndent()
+
+        private val TEXT_LOG_ERRORS_FIXTURE = """
+            [
+              {
+                "id": 9876,
+                "line": "TEST-UNEXPECTED-FAIL | dom/some/test.js | Expected true got false",
+                "line_number": 4201,
+                "job": 8675309
+              }
+            ]
         """.trimIndent()
 
         private val JOBS_FIXTURE = """

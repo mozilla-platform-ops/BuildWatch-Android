@@ -45,7 +45,7 @@ private interface TreeHerderApi {
     suspend fun retriggerJob(@Path("jobId") jobId: Int): ResponseBody
 }
 
-class TreeHerderService private constructor(private val api: TreeHerderApi) {
+class TreeHerderService private constructor(private val api: TreeHerderApi) : TreeHerder {
 
     companion object {
         private const val BASE_URL = "https://treeherder.mozilla.org/api/"
@@ -83,22 +83,22 @@ class TreeHerderService private constructor(private val api: TreeHerderApi) {
         }
     }
 
-    suspend fun fetchPushes(count: Int = 20, author: String? = null): List<Push> {
+    override suspend fun fetchPushes(count: Int, author: String?): List<Push> {
         val body = api.fetchPushesRaw(count, author).string()
         return json.decodeFromString<PushesResponse>(body).results
     }
 
-    suspend fun fetchJobs(pushId: Int): List<Job> {
+    override suspend fun fetchJobs(pushId: Int): List<Job> {
         val body = api.fetchJobsRaw(pushId, 2000, "list", "false").string()
         return parseCompactJobs(body)
     }
 
-    suspend fun fetchTextLogErrors(jobId: Int): List<TextLogError> {
+    override suspend fun fetchTextLogErrors(jobId: Int): List<TextLogError> {
         val body = api.fetchTextLogErrorsRaw(jobId).string()
         return json.decodeFromString(body)
     }
 
-    suspend fun retriggerJob(jobId: Int) {
+    override suspend fun retriggerJob(jobId: Int) {
         api.retriggerJob(jobId)
     }
 
