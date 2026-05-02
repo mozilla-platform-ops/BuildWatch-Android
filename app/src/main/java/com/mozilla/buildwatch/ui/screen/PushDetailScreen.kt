@@ -77,7 +77,6 @@ private enum class JobFilter(val label: String) {
 fun PushDetailScreen(
     pushId: Int,
     onBack: () -> Unit,
-    onFailureSummary: () -> Unit = {},
     vm: DashboardViewModel = viewModel(
         factory = DashboardViewModel.factory(
             LocalContext.current.applicationContext as Application,
@@ -91,6 +90,7 @@ fun PushDetailScreen(
     val platformGroups = if (push != null) vm.platformGroups(push) else emptyList()
     val scope = rememberCoroutineScope()
 
+    var showFailureSheet by remember { mutableStateOf(false) }
     var activeFilter by remember { mutableStateOf(JobFilter.ALL) }
     var filterMenuExpanded by remember { mutableStateOf(false) }
 
@@ -104,6 +104,14 @@ fun PushDetailScreen(
             val filtered = group.jobs.filter { it.state == JobState.RUNNING || it.state == JobState.PENDING }
             if (filtered.isEmpty()) null else group.copy(jobs = filtered)
         }
+    }
+
+    if (showFailureSheet && push != null) {
+        FailureSummarySheet(
+            push = push,
+            onDismiss = { showFailureSheet = false },
+            vm = vm,
+        )
     }
 
     Scaffold(
@@ -169,7 +177,7 @@ fun PushDetailScreen(
                     push = push,
                     failureCount = vm.failureCount(push),
                     onRetriggerAllFailed = { vm.retriggerAllFailed(push) },
-                    onFailureSummary = onFailureSummary,
+                    onFailureSummary = { showFailureSheet = true },
                 )
             }
             item {
