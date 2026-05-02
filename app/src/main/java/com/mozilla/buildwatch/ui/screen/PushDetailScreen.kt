@@ -121,7 +121,7 @@ fun PushDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(push?.displayTitle ?: "Push #$pushId", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                title = { Text(push?.displayTitle ?: "Push #$pushId", maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleSmall) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
