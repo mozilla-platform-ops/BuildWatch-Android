@@ -4,7 +4,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.OfflineBolt
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.RemoveCircle
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Warning
@@ -48,4 +50,12 @@ fun PlatformGroup.OverallStatus.toColor(): Color = when (this) {
     PlatformGroup.OverallStatus.FAILING -> ColorFailed
     PlatformGroup.OverallStatus.RUNNING -> ColorRunning
     PlatformGroup.OverallStatus.PENDING -> ColorNeutral
+}
+
+// RUNNING is handled as a CircularProgressIndicator in components; this covers the other three.
+fun PlatformGroup.OverallStatus.toIcon(): ImageVector = when (this) {
+    PlatformGroup.OverallStatus.PASSING -> Icons.Filled.CheckCircle
+    PlatformGroup.OverallStatus.FAILING -> Icons.Filled.Error
+    PlatformGroup.OverallStatus.RUNNING -> Icons.Filled.Refresh
+    PlatformGroup.OverallStatus.PENDING -> Icons.Filled.HourglassEmpty
 }

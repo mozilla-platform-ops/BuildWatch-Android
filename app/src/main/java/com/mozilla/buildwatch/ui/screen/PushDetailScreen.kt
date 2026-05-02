@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -48,10 +49,13 @@ import com.mozilla.buildwatch.model.JobResult
 import com.mozilla.buildwatch.model.JobState
 import com.mozilla.buildwatch.model.Push
 import com.mozilla.buildwatch.model.PushRevision
+import com.mozilla.buildwatch.ui.component.JobRowItem
+import com.mozilla.buildwatch.ui.component.PlatformGroupHeader
 import com.mozilla.buildwatch.ui.theme.ColorSuccess
 import com.mozilla.buildwatch.util.openUrl
 import com.mozilla.buildwatch.util.shortTimeAgo
 import com.mozilla.buildwatch.viewmodel.DashboardViewModel
+import kotlinx.coroutines.launch
 
 private val ColorFailurePill = Color(0xFFFF4F5E)
 private val ColorBugChip = Color(0xFF1565C0)
@@ -72,6 +76,8 @@ fun PushDetailScreen(
     val jobsByPush by vm.jobsByPush.collectAsStateWithLifecycle()
     val push = pushes.firstOrNull { it.id == pushId }
     val jobs = jobsByPush[pushId] ?: emptyList()
+    val platformGroups = if (push != null) vm.platformGroups(push) else emptyList()
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -114,6 +120,28 @@ fun PushDetailScreen(
             items(push.revisions, key = { it.revision }) { rev ->
                 RevisionRow(rev)
                 HorizontalDivider()
+            }
+
+            if (platformGroups.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "Jobs",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                }
+                for (group in platformGroups) {
+                    item(key = "header-${group.id}") {
+                        PlatformGroupHeader(group = group)
+                    }
+                    items(group.jobs, key = { "job-${it.id}" }) { job ->
+                        JobRowItem(
+                            job = job,
+                            onRetrigger = { scope.launch { vm.retrigger(job) } },
+                        )
+                    }
+                }
             }
         }
     }
