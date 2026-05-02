@@ -35,6 +35,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -89,6 +90,8 @@ fun PushDetailScreen(
     val jobs = jobsByPush[pushId] ?: emptyList()
     val platformGroups = if (push != null) vm.platformGroups(push) else emptyList()
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(push) { push?.let { vm.fetchJobs(it) } }
 
     var showFailureSheet by remember { mutableStateOf(false) }
     var activeFilter by remember { mutableStateOf(JobFilter.ALL) }

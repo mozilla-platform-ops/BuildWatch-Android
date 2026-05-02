@@ -108,9 +108,12 @@ class MainActivity : ComponentActivity() {
                 ) { padding ->
                     NavHost(navController = navController, startDestination = TryPushes) {
                         composable<TryPushes> {
-                            TryPushesScreen(onPushClick = { pushId ->
-                                navController.navigate(PushDetail(pushId))
-                            })
+                            TryPushesScreen(
+                                vm = vm,
+                                onPushClick = { pushId ->
+                                    navController.navigate(PushDetail(pushId))
+                                },
+                            )
                         }
                         composable<Settings> {
                             SettingsScreen()
@@ -118,6 +121,7 @@ class MainActivity : ComponentActivity() {
                         composable<PushDetail> { entry ->
                             val route = entry.toRoute<PushDetail>()
                             PushDetailScreen(
+                                vm = vm,
                                 pushId = route.pushId,
                                 onBack = { navController.popBackStack() },
                             )
