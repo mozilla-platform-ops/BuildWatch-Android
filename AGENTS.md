@@ -118,4 +118,13 @@ JAVA_HOME=/Users/aerickson/.mozbuild/jdk/jdk-17.0.15+6/Contents/Home \
 
 The three deprecation warnings in `MainActivity.kt`, `SettingsScreen.kt`, and `JobColors.kt` are pre-existing and harmless — don't fix them unless that's the task.
 
+---
+
+## TreeHerder URL Patterns
+
+| Purpose | URL |
+|---|---|
+| Push jobs view | `https://treeherder.mozilla.org/#/jobs?repo=try&revision={push.revision}` |
+| Bugzilla bug | `https://bugzilla.mozilla.org/show_bug.cgi?id={bugNumber}` |
+
 <!-- end-br-agent-instructions -->
