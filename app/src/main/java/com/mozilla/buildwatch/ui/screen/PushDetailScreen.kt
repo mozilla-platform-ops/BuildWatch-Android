@@ -20,8 +20,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -33,7 +36,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -60,6 +66,12 @@ import kotlinx.coroutines.launch
 private val ColorFailurePill = Color(0xFFFF4F5E)
 private val ColorBugChip = Color(0xFF1565C0)
 
+private enum class JobFilter(val label: String) {
+    ALL("All"),
+    FAILURES("Failures"),
+    RUNNING("Running"),
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PushDetailScreen(
@@ -79,6 +91,21 @@ fun PushDetailScreen(
     val platformGroups = if (push != null) vm.platformGroups(push) else emptyList()
     val scope = rememberCoroutineScope()
 
+    var activeFilter by remember { mutableStateOf(JobFilter.ALL) }
+    var filterMenuExpanded by remember { mutableStateOf(false) }
+
+    val filteredGroups = when (activeFilter) {
+        JobFilter.ALL -> platformGroups
+        JobFilter.FAILURES -> platformGroups.mapNotNull { group ->
+            val filtered = group.jobs.filter { it.result.isFailure && it.state == JobState.COMPLETED }
+            if (filtered.isEmpty()) null else group.copy(jobs = filtered)
+        }
+        JobFilter.RUNNING -> platformGroups.mapNotNull { group ->
+            val filtered = group.jobs.filter { it.state == JobState.RUNNING || it.state == JobState.PENDING }
+            if (filtered.isEmpty()) null else group.copy(jobs = filtered)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -86,6 +113,42 @@ fun PushDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (platformGroups.isNotEmpty()) {
+                        IconButton(onClick = { filterMenuExpanded = true }) {
+                            Icon(
+                                Icons.Filled.FilterList,
+                                contentDescription = "Filter jobs",
+                                tint = if (activeFilter != JobFilter.ALL)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = filterMenuExpanded,
+                            onDismissRequest = { filterMenuExpanded = false },
+                        ) {
+                            JobFilter.entries.forEach { filter ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            filter.label,
+                                            fontWeight = if (filter == activeFilter)
+                                                FontWeight.Bold
+                                            else
+                                                FontWeight.Normal,
+                                        )
+                                    },
+                                    onClick = {
+                                        activeFilter = filter
+                                        filterMenuExpanded = false
+                                    },
+                                )
+                            }
+                        }
                     }
                 },
             )
@@ -131,7 +194,7 @@ fun PushDetailScreen(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     )
                 }
-                for (group in platformGroups) {
+                for (group in filteredGroups) {
                     item(key = "header-${group.id}") {
                         PlatformGroupHeader(group = group)
                     }
