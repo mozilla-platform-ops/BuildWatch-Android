@@ -216,4 +216,14 @@ class DashboardViewModel(
     suspend fun retrigger(job: Job) {
         service.retriggerJob(job.id)
     }
+
+    fun retriggerAllFailed(push: Push) {
+        val jobs = _jobsByPush.value[push.id] ?: return
+        val failed = jobs.filter { it.result.isFailure && it.state == JobState.COMPLETED }
+        viewModelScope.launch {
+            for (job in failed) {
+                try { service.retriggerJob(job.id) } catch (_: Exception) {}
+            }
+        }
+    }
 }

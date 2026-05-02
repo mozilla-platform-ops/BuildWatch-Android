@@ -3,6 +3,7 @@ package com.mozilla.buildwatch.ui.screen
 import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -25,6 +27,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -58,6 +61,7 @@ private val ColorBugChip = Color(0xFF1565C0)
 fun PushDetailScreen(
     pushId: Int,
     onBack: () -> Unit,
+    onFailureSummary: () -> Unit = {},
     vm: DashboardViewModel = viewModel(
         factory = DashboardViewModel.factory(
             LocalContext.current.applicationContext as Application,
@@ -90,6 +94,14 @@ fun PushDetailScreen(
             item { AuthorHeader(push) }
             if (jobs.isNotEmpty()) {
                 item { PushSummaryBar(jobs) }
+            }
+            item {
+                QuickActionsRow(
+                    push = push,
+                    failureCount = vm.failureCount(push),
+                    onRetriggerAllFailed = { vm.retriggerAllFailed(push) },
+                    onFailureSummary = onFailureSummary,
+                )
             }
             item {
                 Text(
@@ -204,6 +216,40 @@ private fun RevisionRow(rev: PushRevision) {
                         openUrl(context, "https://bugzilla.mozilla.org/show_bug.cgi?id=$bugNum")
                     },
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuickActionsRow(
+    push: Push,
+    failureCount: Int,
+    onRetriggerAllFailed: () -> Unit,
+    onFailureSummary: () -> Unit,
+) {
+    val context = LocalContext.current
+    val bugNumber = push.revisions.firstNotNullOfOrNull { it.bugNumber }
+    val treeherderUrl = "https://treeherder.mozilla.org/#/jobs?repo=try&revision=${push.revision}"
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        OutlinedButton(onClick = onRetriggerAllFailed, enabled = failureCount > 0) {
+            Text("Retrigger All Failed")
+        }
+        OutlinedButton(onClick = onFailureSummary, enabled = failureCount > 0) {
+            Text("Failure Summary")
+        }
+        OutlinedButton(onClick = { openUrl(context, treeherderUrl) }) {
+            Text("Open in TreeHerder")
+        }
+        if (bugNumber != null) {
+            OutlinedButton(onClick = { openUrl(context, "https://bugzilla.mozilla.org/show_bug.cgi?id=$bugNumber") }) {
+                Text("Bug $bugNumber")
             }
         }
     }
