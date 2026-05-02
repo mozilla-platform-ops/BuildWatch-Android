@@ -12,8 +12,10 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -24,6 +26,8 @@ import com.mozilla.buildwatch.ui.screen.PushDetailScreen
 import com.mozilla.buildwatch.ui.screen.SettingsScreen
 import com.mozilla.buildwatch.ui.screen.TryPushesScreen
 import com.mozilla.buildwatch.ui.theme.BuildWatchTheme
+import com.mozilla.buildwatch.util.NotificationHelper
+import com.mozilla.buildwatch.viewmodel.DashboardViewModel
 import kotlinx.serialization.Serializable
 
 // Type-safe nav routes
@@ -41,9 +45,22 @@ private val tabs = listOf(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        NotificationHelper.createChannel(this)
         enableEdgeToEdge()
         setContent {
             BuildWatchTheme {
+                val vm: DashboardViewModel = viewModel(
+                    factory = DashboardViewModel.factory(application),
+                )
+                LaunchedEffect(Unit) {
+                    vm.completionEvents.collect { push ->
+                        NotificationHelper.fireNotification(
+                            context = this@MainActivity,
+                            push = push,
+                            failureCount = vm.failureCount(push),
+                        )
+                    }
+                }
                 val navController = rememberNavController()
                 val backStack by navController.currentBackStackEntryAsState()
                 val currentDest = backStack?.destination
