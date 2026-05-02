@@ -1,6 +1,10 @@
 package com.mozilla.buildwatch.ui.screen
 
+import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -18,6 +22,7 @@ import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -25,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -42,6 +48,11 @@ import com.mozilla.buildwatch.viewmodel.SettingsViewModel
 fun SettingsScreen(vm: SettingsViewModel = viewModel()) {
     val context = LocalContext.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
+    val notificationsEnabled by vm.notificationsEnabled.collectAsStateWithLifecycle()
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> if (granted) vm.setNotificationsEnabled(true) }
 
     val storedUsername by vm.username.collectAsStateWithLifecycle()
     // Show just the LDAP handle in the field; store full email internally.
@@ -99,6 +110,39 @@ fun SettingsScreen(vm: SettingsViewModel = viewModel()) {
             if (fieldValue != displayHandle) {
                 vm.setUsername(fieldValue)
             }
+
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+
+            // Notifications section
+            SectionLabel("Notifications")
+            val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(
+                    context, Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            } else true
+            val notificationStatus = when {
+                notificationsEnabled -> "Enabled"
+                hasPermission -> "Disabled"
+                else -> "Not Set Up"
+            }
+            ListItem(
+                headlineContent = { Text("Build Notifications") },
+                supportingContent = { Text(notificationStatus) },
+                trailingContent = {
+                    Switch(
+                        checked = notificationsEnabled,
+                        onCheckedChange = { enable ->
+                            if (!enable) {
+                                vm.setNotificationsEnabled(false)
+                            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasPermission) {
+                                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            } else {
+                                vm.setNotificationsEnabled(true)
+                            }
+                        },
+                    )
+                },
+            )
 
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
 

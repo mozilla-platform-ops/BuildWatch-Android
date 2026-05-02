@@ -18,10 +18,20 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         "",
     )
 
+    val notificationsEnabled = repo.notificationsEnabled.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        false,
+    )
+
     fun setUsername(handle: String) {
         viewModelScope.launch {
             val trimmed = handle.trim().substringBefore("@")
             repo.setUsername(if (trimmed.isEmpty()) "" else "$trimmed@mozilla.com")
         }
+    }
+
+    fun setNotificationsEnabled(value: Boolean) {
+        viewModelScope.launch { repo.setNotificationsEnabled(value) }
     }
 }
