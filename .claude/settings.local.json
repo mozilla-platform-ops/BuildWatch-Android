@@ -16,7 +16,19 @@
       "Bash(git add *)",
       "Bash(br close *)",
       "Bash(br sync *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(br ready *)",
+      "Bash(bd ready *)",
+      "Bash(JAVA_HOME=/Users/aerickson/.mozbuild/jdk/jdk-17.0.15+6/Contents/Home ./gradlew :app:compileDebugKotlin)",
+      "Bash(br list *)",
+      "Bash(grep -v \"^$\")",
+      "Bash(git commit -m 'Implement PushDetailScreen scaffolding \\(bwa-kfx.1\\) *)",
+      "Bash(git commit *)",
+      "Bash(br ls *)",
+      "Bash(./gradlew assembleDebug)",
+      "Bash(JAVA_HOME=$\\(/usr/libexec/java_home -v 17\\) ./gradlew assembleDebug)",
+      "Bash(JAVA_HOME=/Users/aerickson/.mozbuild/jdk/jdk-17.0.15+6/Contents/Home ./gradlew :app:testDebugUnitTest)",
+      "Bash(br done *)"
     ]
   }
 }
