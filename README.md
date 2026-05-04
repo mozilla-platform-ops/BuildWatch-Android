@@ -2,6 +2,47 @@
 
 A native Android app for Mozilla engineers to monitor Firefox CI build status. Android port of [BuildWatch (iOS)](https://github.com/mozilla-platform-ops/BuildWatch).
 
+![Platform](https://img.shields.io/badge/platform-Android%208.0%2B-brightgreen)
+![Kotlin](https://img.shields.io/badge/kotlin-2.x-purple)
+![License](https://img.shields.io/badge/license-MPL--2.0-green)
+
+---
+
+## Features
+
+### Try Pushes
+- Live push list for your try pushes
+- Per-push platform status dots — color coded by worst result (green / red / orange / blue)
+- Failure count and in-progress job counts per push
+- Pull-to-refresh with last-updated timestamp
+- Swipe right on any push to toggle build-failure notifications for it
+
+### Push Detail
+- Full commit messages with clickable bug number links
+- Jobs grouped by platform (linux64, win64, macos, android-arm64, …)
+- Filter by All / Failures / Running
+- Retrigger any individual job with a tap
+- **Retrigger All Failed** with a single tap
+- **Failure Summary** — groups failed jobs by test name, shows affected job counts and raw error lines from TreeHerder log data
+- All external links (TreeHerder, Taskcluster, Bugzilla) open in an in-app Custom Tab — tap back to return instantly
+- Duration shown for every completed job
+
+### Settings
+- LDAP username for filtering your try pushes
+- Build notification opt-in per push (via swipe gesture on push list)
+
+---
+
+## Data Sources
+
+All APIs are public — no VPN or Mozilla network access required.
+
+| Source | Used for |
+|--------|----------|
+| [TreeHerder](https://treeherder.mozilla.org) | Push list, job results, retrigger |
+| [Taskcluster](https://firefox-ci-tc.services.mozilla.com) | Task deep links |
+| [Bugzilla](https://bugzilla.mozilla.org) | Bug links from commit messages |
+
 ---
 
 ## Requirements
@@ -41,13 +82,9 @@ If you don't have an emulator set up:
 
 Select your emulator from the device dropdown in the toolbar, then click **Run ▶** (or `Ctrl+R` / `Cmd+R`).
 
-The app will build and launch on the emulator.
-
 ---
 
 ## Building from the command line
-
-Set `JAVA_HOME` to Android Studio's bundled JDK and `ANDROID_HOME` to your SDK location, then use the Gradle wrapper:
 
 ```bash
 export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
@@ -62,11 +99,11 @@ The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
 ---
 
-## First-time setup in the app
+## Optional Setup
 
-1. Open **Settings** (bottom tab)
-2. Enter your LDAP username (e.g. `rcurran` — just the handle, not the full email)
-3. Switch to the **Try Pushes** tab to see your CI pushes
+**Try Pushes tab** — add your LDAP username (e.g. `jsmith`) in Settings. The app will filter the push list to your pushes only.
+
+**Build notifications** — swipe right on any push in the list to watch it. You'll receive a notification when its builds finish.
 
 ---
 
@@ -79,7 +116,7 @@ app/src/main/java/com/mozilla/buildwatch/
 ├── repository/      — SettingsRepository (DataStore)
 ├── viewmodel/       — DashboardViewModel, SettingsViewModel
 └── ui/
-    ├── screen/      — TryPushesScreen, PushDetailScreen, SettingsScreen
+    ├── screen/      — TryPushesScreen, PushDetailScreen, SettingsScreen, FailureSummarySheet
     ├── component/   — Reusable Compose components
     └── theme/       — Material 3 theme, JobColors
 ```
@@ -100,12 +137,10 @@ This shows open, unblocked issues sorted by priority. See [AGENTS.md](AGENTS.md)
 
 ---
 
-## Data sources
+## Contributing
 
-All APIs are public — no VPN or Mozilla network access required.
+PRs welcome. File issues at [bugzilla.mozilla.org](https://bugzilla.mozilla.org) under `Firefox :: Developer Tools`.
 
-| Source | Used for |
-|--------|----------|
-| [TreeHerder](https://treeherder.mozilla.org) | Push list, job results, retrigger |
-| [Taskcluster](https://firefox-ci-tc.services.mozilla.com) | Task deep links |
-| [Bugzilla](https://bugzilla.mozilla.org) | Bug links from commit messages |
+---
+
+*Android port maintained at [mozilla-platform-ops/BuildWatch-Android](https://github.com/mozilla-platform-ops/BuildWatch-Android) · Powered by [TreeHerder](https://treeherder.mozilla.org)*
