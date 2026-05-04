@@ -15,5 +15,7 @@
 .cxx
 local.properties
 
+keystore.properties
+
 # bv (beads viewer) local config and caches
 .bv/
