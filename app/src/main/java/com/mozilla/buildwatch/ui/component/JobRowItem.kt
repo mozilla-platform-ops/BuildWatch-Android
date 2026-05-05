@@ -81,7 +81,7 @@ fun JobRowItem(
     SwipeToDismissBox(
         state = dismissState,
         enableDismissFromStartToEnd = false,
-        enableDismissFromEndToStart = true,
+        enableDismissFromEndToStart = false,
         backgroundContent = {
             Box(
                 modifier = Modifier

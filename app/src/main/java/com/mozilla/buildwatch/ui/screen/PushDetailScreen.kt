@@ -341,7 +341,7 @@ private fun QuickActionsRow(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        OutlinedButton(onClick = onRetriggerAllFailed, enabled = failureCount > 0) {
+        OutlinedButton(onClick = {}, enabled = false) {
             Text("Retrigger All Failed")
         }
         OutlinedButton(onClick = onFailureSummary, enabled = failureCount > 0) {
