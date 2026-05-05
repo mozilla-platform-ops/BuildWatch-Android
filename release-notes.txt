@@ -1,1 +1,1 @@
-See git log for changes.
+v1.0.1 - Disable retrigger UI until auth is implemented
