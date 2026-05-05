@@ -47,8 +47,10 @@ android {
             firebaseAppDistribution {
                 appId = keystoreProps.getProperty("firebaseAppId")
                     ?: System.getenv("FIREBASE_APP_ID") ?: ""
-                groups = "internal-testers"
                 releaseNotesFile = "release-notes.txt"
+                val g = keystoreProps.getProperty("firebaseGroups")
+                    ?: System.getenv("FIREBASE_GROUPS")
+                if (!g.isNullOrBlank()) groups = g
             }
         }
     }
