@@ -8,6 +8,12 @@ A native Android app for Mozilla engineers to monitor Firefox CI build status. A
 
 ---
 
+## Install
+
+Testers: install via [Firebase App Distribution](https://appdistribution.firebase.dev/i/e1124d6939a77afa). Currently requires a `mozilla.com` email address to authenticate (tracked in `bwa-o8c` — we'd like to lift this).
+
+---
+
 ## Features
 
 ### Try Pushes
@@ -139,7 +145,7 @@ This shows open, unblocked issues sorted by priority. See [AGENTS.md](AGENTS.md)
 
 ## Contributing
 
-PRs welcome. File issues at [bugzilla.mozilla.org](https://bugzilla.mozilla.org) under `Firefox :: Developer Tools`.
+PRs welcome. File issues on [GitHub](https://github.com/aerickson/BuildWatch-Android/issues).
 
 ---
 
