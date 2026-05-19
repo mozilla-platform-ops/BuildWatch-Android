@@ -10,7 +10,7 @@ A native Android app for Mozilla engineers to monitor Firefox CI build status. A
 
 ## Install
 
-Testers: install via [Firebase App Distribution](https://appdistribution.firebase.dev/i/e1124d6939a77afa). Currently requires a `mozilla.com` email address to authenticate (tracked in `bwa-o8c` — we'd like to lift this).
+Testers: install via [Firebase App Distribution](https://appdistribution.firebase.dev/i/e1124d6939a77afa). The app's Settings screen currently assumes a `mozilla.com` email address (tracked in `bwa-o8c` — we'd like to lift this).
 
 ---
 
